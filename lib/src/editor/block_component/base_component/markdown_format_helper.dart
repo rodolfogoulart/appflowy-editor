@@ -111,5 +111,6 @@ bool _hasSameDescendantContent(Node before, Node after) {
       return false;
     }
   }
+
   return true;
 }

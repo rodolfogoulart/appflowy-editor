@@ -201,6 +201,7 @@ class UpdateNodeTypeOperation extends Operation {
     final oldType = json['oldType'] as String;
     final attributes = json['attributes'] as Attributes;
     final oldAttributes = json['oldAttributes'] as Attributes;
+
     return UpdateNodeTypeOperation(
       path,
       nodeId,
