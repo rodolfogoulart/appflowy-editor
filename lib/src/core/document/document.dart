@@ -182,6 +182,7 @@ class Document {
 
     target.unlink();
     parent.insert(replacement, index: index);
+
     return true;
   }
 
