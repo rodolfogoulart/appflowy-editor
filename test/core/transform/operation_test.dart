@@ -72,6 +72,30 @@ void main() async {
       expect(op.copyWith(), op);
     });
 
+    test('test update node type operation', () {
+      const op = UpdateNodeTypeOperation(
+        [0],
+        'node-id',
+        'heading',
+        'paragraph',
+        {'level': 1},
+        {'delta': []},
+      );
+      final json = op.toJson();
+      expect(json, {
+        'op': 'update_node_type',
+        'path': [0],
+        'nodeId': 'node-id',
+        'type': 'heading',
+        'oldType': 'paragraph',
+        'attributes': {'level': 1},
+        'oldAttributes': {'delta': []},
+      });
+      expect(UpdateNodeTypeOperation.fromJson(json), op);
+      expect(op.invert().invert(), op);
+      expect(op.copyWith(), op);
+    });
+
     test('test delete operation', () {
       final node = Node(type: 'example');
       final op = DeleteOperation([0], [node]);
