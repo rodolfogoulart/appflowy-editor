@@ -207,6 +207,9 @@ void main() async {
     test(
         'nested todo_list to numbered_list preserves ids through undo and redo',
         () async {
+      // Unlike heading, numbered lists can keep the same child shape. This
+      // covers the safe in-place path for nested blocks and verifies undo/redo
+      // does not regenerate parent or child ids.
       const syntax = '1.';
       const text = 'Welcome to AppFlowy Editor 🔥!';
       final child1 = todoListNode(text: '1 $text', checked: false)

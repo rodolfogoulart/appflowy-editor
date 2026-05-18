@@ -65,6 +65,9 @@ void main() async {
     });
 
     test('remote updateNodeType resolves stale path by node id', () async {
+      // Remote type updates may be queued with an old path. In that case the
+      // node id is the stable identity and must win over the stale path, or the
+      // update can convert a newly inserted sibling by mistake.
       final inserted = paragraphNode(text: 'inserted')..id = 'inserted-id';
       final target = paragraphNode(text: 'target')..id = 'target-id';
       final document = Document.blank()..insert([0], [inserted, target]);
@@ -94,6 +97,8 @@ void main() async {
 
     test('remote updateNodeType skips stale path when node id is missing',
         () async {
+      // If the stable node id cannot be found, the operation should be ignored.
+      // Applying it to the stale path would mutate the wrong block.
       final inserted = paragraphNode(text: 'inserted')..id = 'inserted-id';
       final document = Document.blank()..insert([0], [inserted]);
       final editorState = EditorState(document: document);
@@ -120,6 +125,8 @@ void main() async {
 
     test('updateNodeType undo and redo preserve identity and children',
         () async {
+      // Same-shape type updates keep the block in place. Undo/redo must only
+      // switch type/data and must not regenerate the parent or child ids.
       final child = paragraphNode(text: 'child')..id = 'child-id';
       final node = paragraphNode(
         text: 'parent',

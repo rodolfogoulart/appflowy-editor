@@ -150,6 +150,8 @@ void main() async {
     });
 
     test('paragraph to heading preserves id through undo and redo', () async {
+      // No children: this is the safe in-place path. The markdown shortcut
+      // should change the type to heading without replacing the node id.
       const syntax = '#';
       const text = 'Welcome to AppFlowy Editor 🔥!';
       final node = paragraphNode(text: '$syntax$text')..id = 'paragraph-id';
@@ -186,6 +188,9 @@ void main() async {
     });
 
     test('convert numbered_list to heading flattens children', () async {
+      // Historical AppFlowy PR #6516 covered this corner case: heading blocks
+      // cannot contain children, so nested list children must be flattened into
+      // siblings instead of being preserved inside the converted heading.
       const syntax = '#';
       const text = 'Welcome to AppFlowy Editor 🔥!';
       await testFormatCharacterShortcut(
@@ -214,6 +219,9 @@ void main() async {
     });
 
     test('undo and redo numbered_list to heading child flattening', () async {
+      // The same historical report also called out undo risk. The fallback
+      // insert/delete path must undo back to one nested list and redo back to a
+      // childless heading followed by flattened list siblings.
       const syntax = '#';
       const text = 'Welcome to AppFlowy Editor 🔥!';
       final child1 = numberedListNode(delta: Delta()..insert('1 $text'))
