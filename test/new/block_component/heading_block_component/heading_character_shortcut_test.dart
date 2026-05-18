@@ -253,7 +253,9 @@ void main() async {
       expect(editorState.getNodeAtPath([0])!.id, 'parent');
       expect(editorState.getNodeAtPath([0])!.type, NumberedListBlockKeys.type);
       expect(
-          editorState.getNodeAtPath([0])!.delta!.toPlainText(), '$syntax$text');
+        editorState.getNodeAtPath([0])!.delta!.toPlainText(),
+        '$syntax$text',
+      );
       expect(editorState.getNodeAtPath([0])!.children.length, 2);
       expect(editorState.getNodeAtPath([0, 0])!.id, 'child-1');
       expect(editorState.getNodeAtPath([0, 1])!.id, 'child-2');
