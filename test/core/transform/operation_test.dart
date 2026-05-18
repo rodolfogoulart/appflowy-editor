@@ -96,6 +96,29 @@ void main() async {
       expect(op.copyWith(), op);
     });
 
+    test('UpdateNodeTypeOperation hashCode matches equality', () {
+      final op1 = UpdateNodeTypeOperation(
+        [0],
+        'node-id',
+        'heading',
+        'paragraph',
+        {'level': 1},
+        {'delta': 'text'},
+      );
+      final op2 = UpdateNodeTypeOperation(
+        [0],
+        'node-id',
+        'heading',
+        'paragraph',
+        {'level': 1},
+        {'delta': 'text'},
+      );
+
+      expect(op1, op2);
+      expect(op1.hashCode, op2.hashCode);
+      expect({op1}.contains(op2), true);
+    });
+
     test('test delete operation', () {
       final node = Node(type: 'example');
       final op = DeleteOperation([0], [node]);

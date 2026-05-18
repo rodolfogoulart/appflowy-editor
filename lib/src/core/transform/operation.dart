@@ -264,13 +264,14 @@ class UpdateNodeTypeOperation extends Operation {
   }
 
   @override
-  int get hashCode =>
-      path.hashCode ^
-      nodeId.hashCode ^
-      type.hashCode ^
-      oldType.hashCode ^
-      attributes.hashCode ^
-      oldAttributes.hashCode;
+  int get hashCode => Object.hash(
+        Object.hashAll(path),
+        nodeId,
+        type,
+        oldType,
+        hashAttributes(attributes),
+        hashAttributes(oldAttributes),
+      );
 }
 
 /// [UpdateTextOperation] represents a text update operation.
