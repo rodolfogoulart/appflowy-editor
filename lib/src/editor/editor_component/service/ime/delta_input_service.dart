@@ -184,10 +184,6 @@ class DeltaTextInputService extends TextInputService with DeltaTextInputClient {
       }
     }
   }
-
-  //new callback on flutter 3.44
-  @override
-  bool onFocusReceived() => true;
 }
 
 const String _whitespace = ' ';
