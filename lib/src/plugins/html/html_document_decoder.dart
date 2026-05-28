@@ -351,13 +351,19 @@ class DocumentHTMLDecoder extends Converter<String, Document> {
   }) {
     final (delta, specialNodes) = _parseDeltaElement(element);
 
-    return [
-      headingNode(
-        level: level,
-        delta: delta,
-      ),
-      ...specialNodes,
-    ];
+    final align = _getBlockAlign(element);
+    final node = align != null
+        ? Node(
+            type: HeadingBlockKeys.type,
+            attributes: {
+              HeadingBlockKeys.delta: delta.toJson(),
+              HeadingBlockKeys.level: level.clamp(1, 6),
+              blockComponentAlign: align,
+            },
+          )
+        : headingNode(level: level, delta: delta);
+
+    return [node, ...specialNodes];
   }
 
   Node _parseBlockQuoteElement(dom.Element element) {
@@ -419,8 +425,18 @@ class DocumentHTMLDecoder extends Converter<String, Document> {
 
   Iterable<Node> _parseParagraphElement(dom.Element element) {
     final (delta, specialNodes) = _parseDeltaElement(element);
+    final align = _getBlockAlign(element);
+    final node = align != null
+        ? Node(
+            type: ParagraphBlockKeys.type,
+            attributes: {
+              ParagraphBlockKeys.delta: delta.toJson(),
+              blockComponentAlign: align,
+            },
+          )
+        : paragraphNode(delta: delta);
 
-    return [paragraphNode(delta: delta), ...specialNodes];
+    return [node, ...specialNodes];
   }
 
   Node _parseImageElement(dom.Element element) {
@@ -569,6 +585,23 @@ class DocumentHTMLDecoder extends Converter<String, Document> {
     }
 
     return result;
+  }
+
+  String? _getBlockAlign(dom.Element element) {
+    final css = _getCssFromString(element.attributes['style']);
+    switch (css['text-align']) {
+      case 'center':
+        return 'center';
+
+      case 'right':
+        return 'right';
+
+      case 'justify':
+        return null; // currently not support justify align
+
+      default:
+        return null; // 'left' is default align
+    }
   }
 }
 
