@@ -106,7 +106,11 @@ CommandShortcutEventHandler _moveCursorToRightWordCommandHandler =
     }
     editorState.moveCursorForward(SelectionMoveRange.word);
   } else {
-    final endOfWord = selection.end.moveHorizontal(
+    var position = selection.end;
+    if (selection.isBackward) {
+      position = selection.start;
+    }
+    final endOfWord = position.moveHorizontal(
       editorState,
       forward: false,
       selectionRange: SelectionRange.word,
@@ -116,7 +120,7 @@ CommandShortcutEventHandler _moveCursorToRightWordCommandHandler =
     }
     final selectedLine = delta.toPlainText();
     final selectedWord = selectedLine.substring(
-      selection.end.offset,
+      selection.isBackward ? selection.start.offset : selection.end.offset,
       endOfWord.offset,
     );
     // check if the selected word is whitespace
