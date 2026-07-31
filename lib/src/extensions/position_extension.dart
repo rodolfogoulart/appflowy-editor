@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 enum SelectionRange {
   character,
@@ -145,12 +146,51 @@ extension PositionExtension on Position {
         y < remainingMultilineHeight + minFontSize;
         y += minFontSize) {
       newOffset = caretOffset.translate(0, upwards ? -y : y);
-
       newPosition =
           editorState.service.selectionService.getPositionInOffset(newOffset);
-
-      // If a position different from the current one is found, return it.
       if (newPosition != null && newPosition != this) {
+        // Check if the offset returned really belongs to the tested visual line
+        final node = editorState.document.nodeAtPath(newPosition.path);
+        final selectable = node?.selectable;
+
+        if (selectable is State) {
+          final context = (selectable as State).context;
+          RenderParagraph? renderParagraph;
+
+          void findParagraph(RenderObject? renderObject) {
+            if (renderObject is RenderParagraph) {
+              final textLen = renderObject.text.toPlainText().length;
+              if (renderParagraph == null ||
+                  textLen > renderParagraph!.text.toPlainText().length) {
+                renderParagraph = renderObject;
+              }
+            }
+            renderObject?.visitChildren(findParagraph);
+          }
+
+          findParagraph(context.findRenderObject());
+          if (renderParagraph != null) {
+            final localNewOffset = renderParagraph!.globalToLocal(newOffset);
+            final double maxAllowedDy =
+                upwards ? localNewOffset.dy : localNewOffset.dy + 4.0;
+            // Backtrack if the position is beyond the visual line
+            while (newPosition!.offset > 0) {
+              final checkCaret = renderParagraph!.getOffsetForCaret(
+                TextPosition(offset: newPosition.offset),
+                Rect.zero,
+              );
+
+              if (checkCaret.dy <= maxAllowedDy) {
+                break;
+              }
+              newPosition = Position(
+                path: newPosition.path,
+                offset: newPosition.offset - 1,
+              );
+            }
+          }
+        }
+
         return newPosition;
       }
     }
