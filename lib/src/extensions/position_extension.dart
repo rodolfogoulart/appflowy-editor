@@ -149,7 +149,12 @@ extension PositionExtension on Position {
       newPosition =
           editorState.service.selectionService.getPositionInOffset(newOffset);
       if (newPosition != null && newPosition != this) {
-        // Check if the offset returned really belongs to the tested visual line
+        // If the position moved to a different node, accept it directly.
+        if (!newPosition.path.equals(path)) {
+          return newPosition;
+        }
+
+        // If in the same node, check if the offset returned really belongs to a new visual line.
         final node = editorState.document.nodeAtPath(newPosition.path);
         final selectable = node?.selectable;
 
@@ -170,24 +175,24 @@ extension PositionExtension on Position {
 
           findParagraph(context.findRenderObject());
           if (renderParagraph != null) {
-            final localNewOffset = renderParagraph!.globalToLocal(newOffset);
-            final double maxAllowedDy =
-                upwards ? localNewOffset.dy : localNewOffset.dy + 4.0;
-            // Backtrack if the position is beyond the visual line
-            while (newPosition!.offset > 0) {
-              final checkCaret = renderParagraph!.getOffsetForCaret(
-                TextPosition(offset: newPosition.offset),
-                Rect.zero,
-              );
+            final oldCaretDy = renderParagraph!.getOffsetForCaret(
+              TextPosition(offset: this.offset),
+              Rect.zero,
+            ).dy;
+            final newCaretDy = renderParagraph!.getOffsetForCaret(
+              TextPosition(offset: newPosition.offset),
+              Rect.zero,
+            ).dy;
 
-              if (checkCaret.dy <= maxAllowedDy) {
-                break;
-              }
-              newPosition = Position(
-                path: newPosition.path,
-                offset: newPosition.offset - 1,
-              );
+            final isNewVisualLine = upwards
+                ? newCaretDy < oldCaretDy - 2.0
+                : newCaretDy > oldCaretDy + 2.0;
+
+            if (isNewVisualLine) {
+              return newPosition;
             }
+            // Same visual line in the same node; keep searching.
+            continue;
           }
         }
 
@@ -226,10 +231,12 @@ extension PositionExtension on Position {
     final nodeHeightOffset = nodeRenderBox.localToGlobal(Offset(0, nodeHeight));
 
     // Clamp the new offset to the node's bounds.
-    newOffset = Offset(
-      newOffset.dx,
-      math.min(newOffset.dy, nodeHeightOffset.dy),
-    );
+    if (upwards) {
+      newOffset = Offset(
+        newOffset.dx,
+        math.min(newOffset.dy, nodeHeightOffset.dy),
+      );
+    }
 
     newPosition =
         editorState.service.selectionService.getPositionInOffset(newOffset);
