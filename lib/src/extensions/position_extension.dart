@@ -412,7 +412,13 @@ extension PositionExtension on Position {
       neighbourPath = upwards ? neighbourPath : (neighbourPath..add(last + 1));
     }
     if (neighbourPath.isNotEmpty && !neighbourPath.equals(nodePath)) {
-      final neighbour = editorState.document.nodeAtPath(neighbourPath);
+      var neighbour = editorState.document.nodeAtPath(neighbourPath);
+      if (upwards && neighbour != null) {
+        while (neighbour!.children.isNotEmpty) {
+          neighbour = neighbour.children.last;
+        }
+        neighbourPath = neighbour.path;
+      }
       final selectable = neighbour?.selectable;
       if (selectable != null) {
         offset = offset.clamp(
