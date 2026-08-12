@@ -163,6 +163,9 @@ extension PositionExtension on Position {
 
         findParagraph(context.findRenderObject());
         if (renderParagraph != null) {
+          final localCaretX = renderParagraph!.globalToLocal(caretOffset).dx;
+          final maxOffset = targetNode?.delta?.toPlainText().length ?? 0;
+
           if (!upwards) {
             // Moving DOWN into targetNode. Ensure position lands on the FIRST visual line of targetNode.
             final firstLineDy = renderParagraph!
@@ -193,41 +196,68 @@ extension PositionExtension on Position {
                     offset: adjustedOffset,
                   );
                 }
+                int bestOffset = 0;
+                double bestDiff = double.infinity;
+
+                for (int offset = 0; offset <= maxOffset; offset++) {
+                  final caret = renderParagraph!.getOffsetForCaret(
+                    TextPosition(
+                      offset: offset,
+                      affinity: offset == 0
+                          ? TextAffinity.downstream
+                          : TextAffinity.upstream,
+                    ),
+                    Rect.zero,
+                  );
+                  // Only consider offsets on the first visual line
+                  if (caret.dy > firstLineDy + 4.0) {
+                    break;
+                  }
+                  final diff = (caret.dx - localCaretX).abs();
+                  if (diff <= bestDiff) {
+                    bestDiff = diff;
+                    bestOffset = offset;
+                  }
+                }
               }
             }
           } else {
             // Moving UP into targetNode. Ensure position lands on the LAST visual line of targetNode.
-            final maxOffset = targetNode?.delta?.toPlainText().length ?? 0;
             final lastLineDy = renderParagraph!
                 .getOffsetForCaret(
-                  TextPosition(offset: maxOffset),
-                  Rect.zero,
                 )
                 .dy;
             final checkCaretDy = renderParagraph!
                 .getOffsetForCaret(
                   TextPosition(offset: targetPosition.offset),
+                    affinity: TextAffinity.upstream,
+                  ),
                   Rect.zero,
                 )
                 .dy;
-            if (checkCaretDy < lastLineDy - 4.0) {
-              var adjustedOffset = targetPosition.offset;
-              while (adjustedOffset < maxOffset) {
-                adjustedOffset++;
-                final caretDy = renderParagraph!
-                    .getOffsetForCaret(
-                      TextPosition(offset: adjustedOffset),
-                      Rect.zero,
-                    )
-                    .dy;
-                if (caretDy >= lastLineDy - 4.0) {
-                  return Position(
-                    path: targetPosition.path,
-                    offset: adjustedOffset,
-                  );
-                }
+
+            int bestOffset = maxOffset;
+            double bestDiff = double.infinity;
+
+            for (int offset = maxOffset; offset >= 0; offset--) {
+              final caret = renderParagraph!.getOffsetForCaret(
+                TextPosition(
+                  offset: offset,
+                  affinity: TextAffinity.upstream,
+                ),
+                Rect.zero,
+              );
+              // Only consider offsets on the last visual line
+              if (caret.dy < lastLineDy - 4.0) {
+                break;
+              }
+              final diff = (caret.dx - localCaretX).abs();
+              if (diff <= bestDiff) {
+                bestDiff = diff;
+                bestOffset = offset;
               }
             }
+            return Position(path: targetPosition.path, offset: bestOffset);
           }
         }
       }
@@ -288,6 +318,20 @@ extension PositionExtension on Position {
               // so the caret visually stays at the end of the target line.
               if (!upwards && newPosition.offset > 0) {
                 final targetLineDy = oldCaretDy + caretRect.height;
+                if (newCaretDy > targetLineDy + 4.0) {
+                  final prevCaret = renderParagraph!.getOffsetForCaret(
+                    TextPosition(offset: newPosition.offset - 1),
+                    Rect.zero,
+                  );
+                  if (prevCaret.dy <= targetLineDy + 4.0) {
+                    newPosition = Position(
+                      path: newPosition.path,
+                      offset: newPosition.offset - 1,
+                    );
+                  }
+                }
+              } else if (upwards && newPosition.offset > 0) {
+                final targetLineDy = oldCaretDy - caretRect.height;
                 if (newCaretDy > targetLineDy + 4.0) {
                   final prevCaret = renderParagraph!.getOffsetForCaret(
                     TextPosition(offset: newPosition.offset - 1),
