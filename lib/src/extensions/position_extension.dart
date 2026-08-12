@@ -420,7 +420,8 @@ extension PositionExtension on Position {
           selectable.end().offset,
         );
 
-        return Position(path: neighbourPath, offset: offset);
+        final targetPos = Position(path: neighbourPath, offset: offset);
+        return upwards ? adjustCrossNodePosition(targetPos) : targetPos;
       }
     }
 
