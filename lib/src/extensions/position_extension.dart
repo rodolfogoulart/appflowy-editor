@@ -175,10 +175,8 @@ extension PositionExtension on Position {
 
           findParagraph(context.findRenderObject());
           if (renderParagraph != null) {
-            final oldCaretDy = renderParagraph!.getOffsetForCaret(
-              TextPosition(offset: this.offset),
-              Rect.zero,
-            ).dy;
+            final oldCaretDy =
+                renderParagraph!.globalToLocal(caretRect.center).dy;
             final newCaretDy = renderParagraph!.getOffsetForCaret(
               TextPosition(offset: newPosition.offset),
               Rect.zero,
@@ -189,6 +187,25 @@ extension PositionExtension on Position {
                 : newCaretDy > oldCaretDy + 2.0;
 
             if (isNewVisualLine) {
+              // If newPosition lands on a soft-wrap line boundary where getOffsetForCaret
+              // projects the caret onto the start of the next line, adjust back 1 character
+              // so the caret visually stays at the end of the target line.
+              if (!upwards && newPosition.offset > 0) {
+                final targetLineDy = oldCaretDy + caretRect.height;
+                if (newCaretDy > targetLineDy + 4.0) {
+                  final prevCaret = renderParagraph!.getOffsetForCaret(
+                    TextPosition(offset: newPosition.offset - 1),
+                    Rect.zero,
+                  );
+                  if (prevCaret.dy <= targetLineDy + 4.0) {
+                    newPosition = Position(
+                      path: newPosition.path,
+                      offset: newPosition.offset - 1,
+                    );
+                  }
+                }
+              }
+
               return newPosition;
             }
             // Same visual line in the same node; keep searching.
