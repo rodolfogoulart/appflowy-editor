@@ -140,6 +140,100 @@ extension PositionExtension on Position {
     //      scenario the position will be found in 10/12 ms instead of 1/2 ms)
     // - If the current node is not multiline: the cycle will be completely
     //   skipped because `remainingMultilineHeight` would be 0.
+    Position adjustCrossNodePosition(Position targetPosition) {
+      if (targetPosition.path.equals(path)) {
+        return targetPosition;
+      }
+      final targetNode = editorState.document.nodeAtPath(targetPosition.path);
+      final selectable = targetNode?.selectable;
+      if (selectable is State) {
+        final context = (selectable as State).context;
+        RenderParagraph? renderParagraph;
+
+        void findParagraph(RenderObject? renderObject) {
+          if (renderObject is RenderParagraph) {
+            final textLen = renderObject.text.toPlainText().length;
+            if (renderParagraph == null ||
+                textLen > renderParagraph!.text.toPlainText().length) {
+              renderParagraph = renderObject;
+            }
+          }
+          renderObject?.visitChildren(findParagraph);
+        }
+
+        findParagraph(context.findRenderObject());
+        if (renderParagraph != null) {
+          if (!upwards) {
+            // Moving DOWN into targetNode. Ensure position lands on the FIRST visual line of targetNode.
+            final firstLineDy = renderParagraph!
+                .getOffsetForCaret(
+                  const TextPosition(offset: 0),
+                  Rect.zero,
+                )
+                .dy;
+            final checkCaretDy = renderParagraph!
+                .getOffsetForCaret(
+                  TextPosition(offset: targetPosition.offset),
+                  Rect.zero,
+                )
+                .dy;
+            if (checkCaretDy > firstLineDy + 4.0) {
+              var adjustedOffset = targetPosition.offset;
+              while (adjustedOffset > 0) {
+                adjustedOffset--;
+                final caretDy = renderParagraph!
+                    .getOffsetForCaret(
+                      TextPosition(offset: adjustedOffset),
+                      Rect.zero,
+                    )
+                    .dy;
+                if (caretDy <= firstLineDy + 4.0) {
+                  return Position(
+                    path: targetPosition.path,
+                    offset: adjustedOffset,
+                  );
+                }
+              }
+            }
+          } else {
+            // Moving UP into targetNode. Ensure position lands on the LAST visual line of targetNode.
+            final maxOffset = targetNode?.delta?.toPlainText().length ?? 0;
+            final lastLineDy = renderParagraph!
+                .getOffsetForCaret(
+                  TextPosition(offset: maxOffset),
+                  Rect.zero,
+                )
+                .dy;
+            final checkCaretDy = renderParagraph!
+                .getOffsetForCaret(
+                  TextPosition(offset: targetPosition.offset),
+                  Rect.zero,
+                )
+                .dy;
+            if (checkCaretDy < lastLineDy - 4.0) {
+              var adjustedOffset = targetPosition.offset;
+              while (adjustedOffset < maxOffset) {
+                adjustedOffset++;
+                final caretDy = renderParagraph!
+                    .getOffsetForCaret(
+                      TextPosition(offset: adjustedOffset),
+                      Rect.zero,
+                    )
+                    .dy;
+                if (caretDy >= lastLineDy - 4.0) {
+                  return Position(
+                    path: targetPosition.path,
+                    offset: adjustedOffset,
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+      return targetPosition;
+    }
+
     Offset newOffset = caretOffset;
     Position? newPosition;
     for (double y = minFontSize;
@@ -151,7 +245,7 @@ extension PositionExtension on Position {
       if (newPosition != null && newPosition != this) {
         // If the position moved to a different node, accept it directly.
         if (!newPosition.path.equals(path)) {
-          return newPosition;
+          return adjustCrossNodePosition(newPosition);
         }
 
         // If in the same node, check if the offset returned really belongs to a new visual line.
@@ -177,10 +271,12 @@ extension PositionExtension on Position {
           if (renderParagraph != null) {
             final oldCaretDy =
                 renderParagraph!.globalToLocal(caretRect.center).dy;
-            final newCaretDy = renderParagraph!.getOffsetForCaret(
-              TextPosition(offset: newPosition.offset),
-              Rect.zero,
-            ).dy;
+            final newCaretDy = renderParagraph!
+                .getOffsetForCaret(
+                  TextPosition(offset: newPosition.offset),
+                  Rect.zero,
+                )
+                .dy;
 
             final isNewVisualLine = upwards
                 ? newCaretDy < oldCaretDy - 2.0
@@ -259,7 +355,7 @@ extension PositionExtension on Position {
         editorState.service.selectionService.getPositionInOffset(newOffset);
 
     if (newPosition != null && newPosition != this) {
-      return newPosition;
+      return adjustCrossNodePosition(newPosition);
     }
 
     // If a new position has not been found, it means that the current node
