@@ -219,17 +219,16 @@ extension PositionExtension on Position {
                     bestOffset = offset;
                   }
                 }
+
+                return Position(path: targetPosition.path, offset: bestOffset);
               }
             }
           } else {
             // Moving UP into targetNode. Ensure position lands on the LAST visual line of targetNode.
             final lastLineDy = renderParagraph!
                 .getOffsetForCaret(
-                )
-                .dy;
-            final checkCaretDy = renderParagraph!
-                .getOffsetForCaret(
-                  TextPosition(offset: targetPosition.offset),
+                  TextPosition(
+                    offset: maxOffset,
                     affinity: TextAffinity.upstream,
                   ),
                   Rect.zero,
