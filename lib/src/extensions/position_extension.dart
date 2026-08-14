@@ -406,19 +406,45 @@ extension PositionExtension on Position {
     // In this case, we can manually get the previous/next node position.
     int offset = editorSelection.end.offset;
     final Path nodePath = editorSelection.end.path;
-    Path neighbourPath = upwards ? nodePath.previous : nodePath.next;
-    if (neighbourPath.equals(nodePath)) {
-      final last = neighbourPath.removeLast();
-      neighbourPath = upwards ? neighbourPath : (neighbourPath..add(last + 1));
-    }
-    if (neighbourPath.isNotEmpty && !neighbourPath.equals(nodePath)) {
-      var neighbour = editorState.document.nodeAtPath(neighbourPath);
-      if (upwards && neighbour != null) {
-        while (neighbour!.children.isNotEmpty) {
-          neighbour = neighbour.children.last;
+    Path? neighbourPath;
+    if (upwards) {
+      if (nodePath.last > 0) {
+        final siblingPath = nodePath.previous;
+        var siblingNode = editorState.document.nodeAtPath(siblingPath);
+        if (siblingNode != null) {
+          while (siblingNode!.children.isNotEmpty) {
+            siblingNode = siblingNode.children.last;
+          }
+          neighbourPath = siblingNode.path;
+        } else {
+          neighbourPath = siblingPath;
         }
-        neighbourPath = neighbour.path;
+      } else if (nodePath.length > 1) {
+        neighbourPath = Path.from(nodePath)..removeLast();
+      } else if (nodePath.first > 0) {
+        final prevRootPath = Path.from([nodePath.first - 1]);
+        var prevRootNode = editorState.document.nodeAtPath(prevRootPath);
+        if (prevRootNode != null) {
+          while (prevRootNode!.children.isNotEmpty) {
+            prevRootNode = prevRootNode.children.last;
+          }
+          neighbourPath = prevRootNode.path;
+        } else {
+          neighbourPath = prevRootPath;
+        }
       }
+    } else {
+      neighbourPath = nodePath.next;
+      if (neighbourPath.equals(nodePath)) {
+        final last = neighbourPath.removeLast();
+        neighbourPath = neighbourPath..add(last + 1);
+      }
+    }
+
+    if (neighbourPath != null &&
+        neighbourPath.isNotEmpty &&
+        !neighbourPath.equals(nodePath)) {
+      final neighbour = editorState.document.nodeAtPath(neighbourPath);
       final selectable = neighbour?.selectable;
       if (selectable != null) {
         offset = offset.clamp(
