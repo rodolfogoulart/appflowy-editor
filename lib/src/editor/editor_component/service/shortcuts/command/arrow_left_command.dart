@@ -110,12 +110,14 @@ CommandShortcutEventHandler _moveCursorToLeftWordCommandHandler =
     );
     if (startOfWord == null) {
       editorState.moveCursorForward(SelectionMoveRange.word);
+
       return KeyEventResult.handled;
     }
 
     // if 0, it means we are at the beginning of the line, move to the previous node
     if (selection.end.offset <= 0) {
       editorState.moveCursorForward(SelectionMoveRange.word);
+
       return KeyEventResult.handled;
     }
 

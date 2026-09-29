@@ -117,11 +117,13 @@ CommandShortcutEventHandler _moveCursorToRightWordCommandHandler =
     );
     if (endOfWord == null) {
       editorState.moveCursorBackward(SelectionMoveRange.line);
+
       return KeyEventResult.handled;
     }
     // if the end of the word is less than or equal to 0, it means we are at the end of the line, move to the next node
     if (endOfWord.offset <= 0) {
       editorState.moveCursorBackward(SelectionMoveRange.line);
+
       return KeyEventResult.handled;
     }
     final selectedLine = delta.toPlainText();

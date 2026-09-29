@@ -256,10 +256,12 @@ extension PositionExtension on Position {
                 bestOffset = offset;
               }
             }
+
             return Position(path: targetPosition.path, offset: bestOffset);
           }
         }
       }
+
       return targetPosition;
     }
 
@@ -453,6 +455,7 @@ extension PositionExtension on Position {
         );
 
         final targetPos = Position(path: neighbourPath, offset: offset);
+
         return upwards ? adjustCrossNodePosition(targetPos) : targetPos;
       }
     }
