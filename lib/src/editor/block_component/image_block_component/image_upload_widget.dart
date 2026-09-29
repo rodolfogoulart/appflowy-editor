@@ -338,9 +338,9 @@ class _UploadImageMenuState extends State<UploadImageMenu> {
               withData: kIsWeb,
             );
             if (result != null && result.files.isNotEmpty) {
-              setState(() {
-                final bytes = result.files.first.bytes;
-                if (kIsWeb && bytes != null) {
+              setState(() async {
+                final bytes = await result.files.first.readAsBytes();
+                if (kIsWeb && bytes.isNotEmpty) {
                   _imagePathOrContent = base64String(bytes);
                 } else {
                   _imagePathOrContent = result.files.first.path;
